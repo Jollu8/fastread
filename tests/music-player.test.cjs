@@ -19,6 +19,8 @@ class Media extends EventTarget {
     this.src = "";
     this.volume = 1;
     this.muted = false;
+    this.playbackRate = 1;
+    this.preservesPitch = true;
     this.currentTime = 0;
   }
   pause() { this.paused = true; this.pauses++; this.dispatchEvent(new Event("pause")); }
@@ -65,6 +67,48 @@ test("source preparation preserves the media element and does not restart an unc
   player.prepare(null);
   assert.equal(element.src,"");
   assert.equal(player.state,"idle");
+});
+
+test("restoring and automatically changing modes never installs a media source", () => {
+  const {element,player} = setup();
+  assert.equal(element.src,"");
+  assert.equal(element.loads,0);
+  assert.equal(element.preload,"none");
+  player.prepare({selection:"second",source:"second.mp3"});
+  assert.equal(element.src,"");
+  assert.equal(element.loads,0);
+  assert.equal(element.plays.length,0);
+});
+
+test("an explicit preload buffers only the chosen track and playback reuses it", async () => {
+  const {element,player} = setup();
+  assert.equal(player.preload(),true);
+  assert.equal(element.src,"assets/sounds/first.mp3");
+  assert.equal(element.paused,true);
+  assert.equal(element.loads,1);
+  element.currentTime=7;
+  assert.equal(player.preload(),true);
+  const playback=player.play();
+  assert.equal(element.loads,1);
+  assert.equal(element.currentTime,7);
+  assert.equal(player.preload(),false,"preload cannot interrupt active playback");
+  element.plays[0].resolve();
+  assert.equal(await playback,true);
+  player.destroy();
+});
+
+test("changing a buffered selection cancels its source without fetching the next one", () => {
+  const {element,player} = setup();
+  player.preload();
+  player.prepare({selection:"second",source:"second.mp3"});
+  assert.equal(element.src,"");
+  assert.equal(element.preload,"none");
+  assert.equal(element.loads,2,"remove src and load abort the previous media request");
+  player.preload();
+  assert.equal(element.src,"second.mp3");
+  player.destroy();
+  assert.equal(element.src,"");
+  assert.equal(element.preload,"none");
 });
 
 test("pause makes late rejections and late successes harmless", async () => {
@@ -351,4 +395,18 @@ test("volume and mute keep their setting across pause and do not restart music",
   assert.equal(element.muted,true);
   player.destroy();
   assert.equal(clock.timers.size,0);
+});
+
+test("playback rate changes immediately without preserving pitch or restarting audio", () => {
+  const {element,player}=setup();
+  assert.equal(element.playbackRate,1);
+  assert.equal(element.preservesPitch,false);
+  player.setPlaybackRate(1.25);
+  assert.equal(element.playbackRate,1.25);
+  assert.equal(element.plays.length,0);
+  player.setPlaybackRate(4);
+  assert.equal(element.playbackRate,1.75);
+  player.setPlaybackRate(.1);
+  assert.equal(element.playbackRate,.8);
+  player.destroy();
 });

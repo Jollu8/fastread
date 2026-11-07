@@ -6,7 +6,7 @@
   const CACHE_STORE_NAME = "documents";
   const SOUND_STORE_NAME = "customSounds";
   const MODES = window.FastReadModes;
-  const DEFAULT_SETTINGS = { wpm: 300, theme: "paper", musicMode: "jazz", musicAutomatic: true, musicVolume: 25, musicMuted: false };
+  const DEFAULT_SETTINGS = { wpm: 300, theme: "oled", musicMode: "adrenaline", musicAutomatic: false, musicVolume: 25, musicMuted: false };
   const THEME_NAMES = new Set(["oled", "midnight", "grey", "paper"]);
   if (window.pdfjsLib) {
     pdfjsLib.GlobalWorkerOptions.workerSrc =
@@ -19,13 +19,13 @@
   const wpmInput = $("wpmInput");
   const wpmValue = $("wpmValue");
   const themeInput = $("themeInput");
-  const musicToggleBtn = $("musicToggleBtn");
   const setupScreen = $("setupScreen");
   const readerScreen = $("readerScreen");
   const wordDisplay = $("wordDisplay");
   const wordBefore = wordDisplay.querySelector(".word-before");
   const wordFocus = wordDisplay.querySelector(".word-focus");
   const wordAfter = wordDisplay.querySelector(".word-after");
+  let wordArrivalAnimation = null;
   const readerProgress = $("readerProgress");
   const codeCard = $("codeCard");
   const codeContent = $("codeContent");
@@ -54,7 +54,7 @@
   const backgroundAudio = $("backgroundAudio");
   let musicFailure = null;
   let musicMode = DEFAULT_SETTINGS.musicMode;
-  let musicAutomatic = true;
+  let musicAutomatic = false;
   let musicVolume = 25;
   let musicMuted = false;
   const musicPlayer = new window.FastReadMusic({
@@ -64,7 +64,7 @@
     onSuccess: clearMusicError
   });
   backgroundAudio.loop = true;
-  backgroundAudio.preload = "metadata";
+  backgroundAudio.preload = "none";
   let cachedDocuments = [];
   let savedState = readSavedState();
   let touchStart = null;
@@ -102,14 +102,14 @@
   function readMusicSettings(settings) {
     const valid = MODES.isValid(settings.musicMode);
     const legacy = !valid && typeof settings.music === "string";
-    let mode = valid ? settings.musicMode : MODES.recommend(Number(settings.wpm) || 300);
+    let mode = valid ? settings.musicMode : DEFAULT_SETTINGS.musicMode;
     if (legacy) {
       mode = settings.sound === "heartbeat" ? "adrenaline"
         : settings.music === "off" || settings.music.startsWith("custom:") ? "silence"
         : /horror|dark/i.test(settings.music) ? "adrenaline"
         : /synthwave/i.test(settings.music) ? "hyperflow" : "focus";
     }
-    const automatic = valid ? settings.musicAutomatic === true : !legacy;
+    const automatic = valid && settings.musicAutomatic === true;
     return {
       musicMode: automatic ? MODES.recommend(Number(settings.wpm) || 300) : mode,
       musicAutomatic: automatic,
@@ -135,6 +135,7 @@
     $("readerWpm").textContent = String(settings.wpm);
     musicPlayer.setVolume(musicVolume / 100);
     musicPlayer.setMuted(musicMuted);
+    musicPlayer.setPlaybackRate(readingMusicPlaybackRate(settings.wpm));
     configureBackgroundMusic();
     updateMusicControls();
   }
@@ -366,15 +367,13 @@
     const generation = ++importGeneration;
     loadingFile = true;
     updateSelectedDocument();
-    // Open music in the original click, before IndexedDB awaits.
-    void startBackgroundMusic();
     let opened = false;
     try {
-      let record = await readCachedDocument(id);
+      let record = cachedDocuments.find((item) => item.id === id) || await readCachedDocument(id);
       if (generation !== importGeneration) return;
       if (!record) throw new Error("Документ недоступен. Загрузите файл ещё раз.");
       if (savedState?.documentId === record.id && savedState.total === record.words?.length) record.index = savedState.index;
-      record = await upgradeDocument(record);
+      if (record.parserVersion !== window.FastReadContent.version || !isCachedWords(record.words)) record = await upgradeDocument(record);
       if (generation !== importGeneration) return;
       if (!isCachedWords(record.words)) throw new Error("Документ недоступен. Загрузите файл ещё раз.");
       words = record.words;
@@ -420,10 +419,6 @@
     const mode = MODES.get(musicMode);
     const recommendation = MODES.get(MODES.recommend(Number(wpmInput.value)));
     const active = musicPlayer.state === "loading" || musicPlayer.state === "playing";
-    musicToggleBtn.disabled = !mode.source;
-    musicToggleBtn.textContent = active ? "Ⅱ" : "▶";
-    musicToggleBtn.setAttribute("aria-pressed", String(active));
-    musicToggleBtn.setAttribute("aria-label", active ? "Приостановить музыку" : "Прослушать режим");
     for (const button of document.querySelectorAll("[data-music-mode]")) {
       button.setAttribute("aria-pressed", String(button.dataset.musicMode === musicMode));
       const recommended = button.dataset.musicMode === recommendation.id;
@@ -432,8 +427,10 @@
     }
     $("musicModeName").textContent = mode.name;
     $("homeMusicModeName").textContent = musicMuted ? `${mode.name} · без звука` : mode.name;
-    $("readerMusicModeName").textContent = mode.name;
-    $("musicRecommendation").textContent = `Рекомендуем ${recommendation.name} · ${recommendation.range}`;
+    const loading = musicPlayer.state === "loading";
+    $("readerMusicModeName").textContent = loading ? `${mode.name} · загрузка…` : mode.name;
+    $("musicRecommendation").textContent = loading ? "Музыка загружается…" : `Рекомендуем ${recommendation.name} · ${recommendation.range}`;
+    $("readerMusicBtn").setAttribute("aria-busy", String(loading));
     $("musicAutoInput").checked = musicAutomatic;
     $("readerMusicModeInput").value = musicMode;
     for (const prefix of ["music", "readerMusic"]) {
@@ -463,7 +460,7 @@
     setStatus(error.message);
     $("readerMusicMessage").textContent = error.message;
     $("readerMusicRetryBtn").textContent = error.kind === "permission" ? "Включить музыку" : "Повторить";
-    $("readerMusicNotice").hidden = !readerScreen.classList.contains("active");
+    $("readerMusicNotice").hidden = !isPlaying || !readerScreen.classList.contains("active");
   }
 
   function configureBackgroundMusic() {
@@ -474,7 +471,12 @@
     return Boolean(configuration);
   }
 
+  function readingMusicPlaybackRate(wpm = Number(wpmInput.value)) {
+    return clamp(1 + (wpm - 300) / 1200, .8, 1.75);
+  }
+
   function startBackgroundMusic() {
+    if (!isPlaying || !readerScreen.classList.contains("active") || musicMuted || musicVolume === 0) return Promise.resolve(false);
     try {
       if (!configureBackgroundMusic()) return Promise.resolve(false);
       // The first native play call stays in the original user gesture.
@@ -485,16 +487,10 @@
     }
   }
 
-  function toggleBackgroundMusic() {
-    if (musicMode === "silence") return;
-    if (musicPlayer.state === "loading" || musicPlayer.state === "playing") void musicPlayer.pause();
-    else void startBackgroundMusic();
-  }
-
   function chooseMusicMode(value, { manual = true, persist = true } = {}) {
     if (!MODES.isValid(value)) return;
     const changed = value !== musicMode;
-    const active = musicPlayer.state === "loading" || musicPlayer.state === "playing";
+    const active = isPlaying && (musicPlayer.state === "loading" || musicPlayer.state === "playing");
     musicMode = value;
     if (manual) musicAutomatic = false;
     if (changed) {
@@ -505,6 +501,7 @@
         if (isPlaying) void startBackgroundMusic();
       }
     }
+    if (manual && !active && !isPlaying && !musicMuted && musicVolume > 0) musicPlayer.preload();
     updateMusicControls();
     if (persist) saveState();
   }
@@ -513,6 +510,7 @@
     const number = Number(value);
     musicVolume = clamp(Number.isFinite(number) ? number : 25, 0, 100);
     musicPlayer.setVolume(musicVolume / 100);
+    if (isPlaying && !musicMuted && musicVolume > 0) void startBackgroundMusic();
     updateMusicControls();
     saveState();
   }
@@ -520,6 +518,7 @@
   function toggleMusicMute() {
     musicMuted = !musicMuted;
     musicPlayer.setMuted(musicMuted);
+    if (!musicMuted && isPlaying) void startBackgroundMusic();
     updateMusicControls();
     saveState();
   }
@@ -676,13 +675,42 @@
     return isMarkdown ? readMarkdown(text) : normalizeText(text);
   }
 
-  async function loadFile(file, { autoStart = false } = {}) {
+  function startDemo(text) {
+    const generation = ++importGeneration;
+    const file = new File([text], "Знакомство с FastRead.md", { type: "text/markdown", lastModified: 1 });
+    try {
+      const parsed = readMarkdown(text);
+      if (!parsed.length) throw new Error("Не удалось открыть пример.");
+      words = parsed;
+      currentFileName = file.name;
+      currentDocumentId = "";
+      currentIndex = 0;
+      holdingCode = false;
+      loadingFile = false;
+      savedState = { ...savedState, documentId: "", fileName: file.name, index: 0, total: words.length };
+      selectTab("home");
+      setStatus("");
+      // Start text and music together in the original click; cache afterwards.
+      startReading(0);
+      saveState();
+      cacheDocument(file, parsed).then((record) => {
+        if (generation !== importGeneration) return;
+        currentDocumentId = record.id;
+        saveState();
+      }).catch((error) => {
+        console.info("Пример открыт без сохранения в библиотеке.", error);
+        if (generation === importGeneration) setStatus("Пример открыт. Сохранение в этом браузере недоступно.");
+      });
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "Не удалось открыть пример.");
+    }
+  }
+
+  async function loadFile(file) {
     const generation = ++importGeneration;
     loadingFile = true;
     updateSelectedDocument();
     setStatus("Открываем документ…");
-    if (autoStart) void startBackgroundMusic();
-    let opened = false;
     try {
       if (!/\.(txt|md|markdown|pdf)$/i.test(file.name) && !["text/plain", "text/markdown", "application/pdf"].includes(file.type)) {
         throw new Error("Выберите файл TXT, Markdown или PDF.");
@@ -700,7 +728,7 @@
         const cached = await cacheDocument(file, loadedWords);
         if (generation !== importGeneration) return;
         currentDocumentId = cached.id;
-        currentIndex = autoStart ? 0 : clamp(cached.index || 0, 0, words.length);
+        currentIndex = clamp(cached.index || 0, 0, words.length);
         setStatus("Готово. Документ сохранён в вашей библиотеке.");
       } catch (error) {
         console.error("Не удалось сохранить файл.", error);
@@ -708,18 +736,11 @@
       }
       saveState();
       selectTab("home");
-      opened = true;
-      if (autoStart) {
-        loadingFile = false;
-        setStatus("");
-        startReading(0);
-      }
     } catch (error) {
       console.error("Не удалось открыть файл.", error);
       setStatus(error instanceof Error ? error.message : "Не удалось открыть файл.");
     } finally {
       if (generation === importGeneration) {
-        if (autoStart && !opened) void musicPlayer.pause({ immediate: true });
         loadingFile = false;
         updateSelectedDocument();
       }
@@ -780,10 +801,12 @@
   function updateReaderStatus() {
     const mode = readerScreen.dataset.mode;
     const complete = mode === "complete";
+    readerScreen.classList.toggle("is-reading-clean", isPlaying);
     $("readerStatus").textContent = complete ? "Готово" : holdingCode ? "Пауза для фрагмента" : isPlaying ? "В вашем ритме" : "На паузе";
     pauseBtn.textContent = isPlaying ? "Ⅱ" : "▶";
     pauseBtn.setAttribute("aria-label", complete ? "Читать ещё раз" : isPlaying ? "Пауза" : "Продолжить");
     $("readerHint").textContent = complete ? "Вы прочитали весь документ" : holdingCode ? "Продолжите, когда будете готовы" : isPlaying ? "Коснитесь экрана, чтобы сделать паузу" : "Коснитесь экрана, чтобы продолжить";
+    $("readerMusicNotice").hidden = !musicFailure || !isPlaying || !readerScreen.classList.contains("active");
     $("readerSpeedDown").disabled = Number(wpmInput.value) <= 100;
     $("readerSpeedUp").disabled = Number(wpmInput.value) >= 1200;
   }
@@ -875,13 +898,20 @@
       wordDisplay.hidden = false;
       const letters = Array.from(item);
       const start = Math.max(0, letters.findIndex((letter) => /[\p{L}\p{N}]/u.test(letter)));
-      const focus = Math.min(letters.length - 1, start + Math.floor((letters.length - start - 1) * .33));
+      const focus = Math.min(letters.length - 1, start + Math.round((letters.length - start - 1) / 2));
       wordBefore.textContent = letters.slice(0, focus).join("");
       wordFocus.textContent = letters[focus];
       wordAfter.textContent = letters.slice(focus + 1).join("");
       const halfWidth = Math.max(45, wordDisplay.clientWidth / 2);
       const longerSide = Math.max(focus, letters.length - focus - 1, 1);
       wordDisplay.style.fontSize = `${Math.min(58, halfWidth / (longerSide + .75) / .62)}px`;
+      if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        wordArrivalAnimation?.cancel();
+        wordArrivalAnimation = wordDisplay.animate(
+          [{ opacity: .35 }, { opacity: 1 }],
+          { duration: Math.min(120, Math.max(50, 60000 / Number(wpmInput.value) * .5)), easing: "ease-out" }
+        );
+      }
     }
     updateReaderStatus();
   }
@@ -1000,6 +1030,7 @@
     wpmInput.value = String(clamp(Number(wpmInput.value) + delta, 100, 1200));
     wpmValue.textContent = wpmInput.value;
     $("readerWpm").textContent = wpmInput.value;
+    musicPlayer.setPlaybackRate(readingMusicPlaybackRate());
     if (musicAutomatic) chooseMusicMode(MODES.recommend(Number(wpmInput.value)), { manual: false, persist: false });
     else updateMusicControls();
     updateReaderStatus();
@@ -1024,7 +1055,7 @@
   $("startBtn").addEventListener("click", () => startReading(positionToSave() >= words.length ? 0 : positionToSave()));
   $("demoBtn").addEventListener("click", () => {
     const demo = '# Читайте в своём ритме\n\nFastRead помогает сосредоточиться на тексте. Не нужно двигать глазами по строкам. Выберите удобную скорость и просто читайте.\n\nВыражения в скобках (например, эта короткая мысль) остаются целыми. Как и «фразы в кавычках». **Markdown** превращается в текст без лишних символов.\n\nКод можно спокойно рассмотреть:\n\n```python\ndef focus(text):\n    return "Меньше шума. Больше смысла."\n```\n\nНажмите «Продолжить» в удобный момент. Ваш документ и место чтения сохраняются на этом устройстве. Хорошего чтения!';
-    void loadFile(new File([demo], "Знакомство с FastRead.md", { type: "text/markdown", lastModified: 1 }), { autoStart: true });
+    startDemo(demo);
   });
 
 
@@ -1055,7 +1086,6 @@
       }
     } catch (error) { setStatus(error instanceof Error ? error.message : "Не удалось открыть документ."); }
   });
-  musicToggleBtn.addEventListener("click", toggleBackgroundMusic);
   $("readerMusicBtn").addEventListener("click", () => showReaderMusicPanel($("readerMusicPanel").hidden));
   $("readerMusicCloseBtn").addEventListener("click", () => showReaderMusicPanel(false));
   $("readerMusicRetryBtn").addEventListener("click", () => { void startBackgroundMusic(); });

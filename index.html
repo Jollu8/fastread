@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ru" data-theme="paper">
+<html lang="ru" data-theme="oled">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -19,7 +19,7 @@
   <script src="app.js" defer></script>
 </head>
 <body>
-  <audio id="backgroundAudio" preload="metadata" loop playsinline hidden></audio>
+  <audio id="backgroundAudio" preload="none" loop playsinline hidden></audio>
   <svg class="svg-definitions" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
     <symbol id="icon-book" viewBox="0 0 24 24"><path d="M12 5.5C9 3.8 5.7 3.4 2.5 4.5v15c3.2-1.1 6.5-.7 9.5 1 3-1.7 6.3-2.1 9.5-1v-15c-3.2-1.1-6.5-.7-9.5 1Zm0 0v15"/></symbol>
     <symbol id="icon-library" viewBox="0 0 24 24"><rect x="3" y="4" width="4" height="16" rx="1"/><rect x="10" y="4" width="4" height="16" rx="1"/><path d="m17 4 4 15"/></symbol>
@@ -61,7 +61,7 @@
       <section class="card speed-card" aria-label="Скорость чтения">
         <div class="range-heading"><label for="wpmInput">Скорость чтения</label><span class="range-value"><strong id="wpmValue">300</strong> <span>слов/мин</span></span></div>
         <input type="range" id="wpmInput" min="100" max="1200" step="10" value="300">
-        <div class="range-limits"><span>Спокойно</span><span class="home-music-mode">♫ <span id="homeMusicModeName">Jazz Flow</span></span><span>Быстро</span></div>
+        <div class="range-limits"><span>Спокойно</span><span class="home-music-mode">♫ <span id="homeMusicModeName">Adrenaline</span></span><span>Быстро</span></div>
       </section>
 
       <div class="home-actions">
@@ -81,21 +81,21 @@
       <div class="panel-heading"><p class="eyebrow">ПОДСТРОЙТЕ ПОД СЕБЯ</p><h1 class="title">Настройки</h1></div>
       <div class="segmented-control" role="tablist" aria-label="Раздел настроек"><button id="readingSettingsTab" type="button" role="tab" data-settings-tab="reading" aria-selected="true" aria-controls="readingSettings">Чтение</button><button id="musicSettingsTab" type="button" role="tab" data-settings-tab="music" aria-selected="false" aria-controls="musicSettings">Музыка</button></div>
       <div class="settings-content" id="readingSettings" role="tabpanel" aria-labelledby="readingSettingsTab">
-        <section class="card settings-card"><label class="setting-label" for="themeInput">Оформление<select class="select-input" id="themeInput"><option value="paper">Светлая · Бумага</option><option value="oled">Тёмная · OLED</option><option value="midnight">Полночь</option><option value="grey">Графит</option></select></label></section>
+        <section class="card settings-card"><label class="setting-label" for="themeInput">Оформление<select class="select-input" id="themeInput"><option value="paper">Светлая · Бумага</option><option value="oled" selected>Тёмная · OLED</option><option value="midnight">Полночь</option><option value="grey">Графит</option></select></label></section>
         <section class="card reading-notes"><span class="small-section-title">Умное чтение</span><div><span class="note-symbol">Aa</span><p><strong>Текст без лишнего</strong><span>Markdown читается с учётом оформления.</span></p></div><div><span class="note-symbol">( )</span><p><strong>Смысл остаётся целым</strong><span>Фразы в скобках и кавычках — вместе.</span></p></div><div><span class="note-symbol">&lt;/&gt;</span><p><strong>Время разобраться</strong><span>На коде и таблицах чтение ждёт вас.</span></p></div></section>
         <p class="privacy-note"><svg class="icon"><use href="#icon-lock"/></svg>Документы и прогресс хранятся локально.</p>
       </div>
       <div class="settings-content" id="musicSettings" role="tabpanel" aria-labelledby="musicSettingsTab" hidden>
-        <div class="music-mode-toolbar"><div><h2>Звуковое сопровождение</h2><p id="musicRecommendation">Рекомендуем Jazz Flow</p></div><label class="music-auto-control" for="musicAutoInput"><span>По скорости</span><input id="musicAutoInput" type="checkbox" role="switch" checked></label></div>
+        <div class="music-mode-toolbar"><div><h2>Звуковое сопровождение</h2><p id="musicRecommendation">Рекомендуем Jazz Flow</p></div><label class="music-auto-control" for="musicAutoInput"><span>По скорости</span><input id="musicAutoInput" type="checkbox" role="switch"></label></div>
         <div class="music-mode-grid" role="group" aria-label="Музыкальные режимы">
           <button class="music-mode" type="button" data-music-mode="focus" aria-pressed="false"><span class="music-mode-top"><span class="music-mode-icon" aria-hidden="true">◌</span><strong>Focus</strong><span class="music-mode-range">150–299</span></span><span class="music-mode-description">Ambient для концентрации</span></button>
-          <button class="music-mode" type="button" data-music-mode="jazz" aria-pressed="true"><span class="music-mode-top"><span class="music-mode-icon" aria-hidden="true">♫</span><strong>Jazz Flow</strong><span class="music-mode-range">300–499</span></span><span class="music-mode-description">Джаз, бас и ударные</span></button>
-          <button class="music-mode" type="button" data-music-mode="adrenaline" aria-pressed="false"><span class="music-mode-top"><span class="music-mode-icon" aria-hidden="true">♥</span><strong>Adrenaline</strong><span class="music-mode-range">300–499</span></span><span class="music-mode-description">Сердцебиение и глубокий бас</span></button>
+          <button class="music-mode" type="button" data-music-mode="jazz" aria-pressed="false"><span class="music-mode-top"><span class="music-mode-icon" aria-hidden="true">♫</span><strong>Jazz Flow</strong><span class="music-mode-range">300–499</span></span><span class="music-mode-description">Джаз, бас и ударные</span></button>
+          <button class="music-mode" type="button" data-music-mode="adrenaline" aria-pressed="true"><span class="music-mode-top"><span class="music-mode-icon" aria-hidden="true">♥</span><strong>Adrenaline</strong><span class="music-mode-range">300–499</span></span><span class="music-mode-description">Сердцебиение и глубокий бас</span></button>
           <button class="music-mode" type="button" data-music-mode="hyperflow" aria-pressed="false"><span class="music-mode-top"><span class="music-mode-icon" aria-hidden="true">≋</span><strong>Hyperflow</strong><span class="music-mode-range">500–799</span></span><span class="music-mode-description">Liquid drum &amp; bass</span></button>
           <button class="music-mode" type="button" data-music-mode="extreme" aria-pressed="false"><span class="music-mode-top"><span class="music-mode-icon" aria-hidden="true">ϟ</span><strong>Extreme</strong><span class="music-mode-range">800+</span></span><span class="music-mode-description">Электроника с плотным ритмом</span></button>
           <button class="music-mode" type="button" data-music-mode="silence" aria-pressed="false"><span class="music-mode-top"><span class="music-mode-icon" aria-hidden="true">○</span><strong>Silence</strong><span class="music-mode-range">Любая</span></span><span class="music-mode-description">Без музыки</span></button>
         </div>
-        <div class="music-volume-tools"><div class="music-volume-control"><label for="musicVolumeInput"><strong id="musicModeName">Jazz Flow</strong><span id="musicVolumeValue">25%</span></label><input id="musicVolumeInput" type="range" min="0" max="100" step="1" value="25" aria-label="Громкость музыки"></div><button class="preview-btn music-mute-button" id="musicMuteBtn" type="button" aria-label="Выключить звук" aria-pressed="false">♫</button><button class="preview-btn" id="musicToggleBtn" type="button" aria-label="Прослушать выбранный режим" aria-pressed="false">▶</button></div>
+        <div class="music-volume-tools"><div class="music-volume-control"><label for="musicVolumeInput"><strong id="musicModeName">Adrenaline</strong><span id="musicVolumeValue">25%</span></label><input id="musicVolumeInput" type="range" min="0" max="100" step="1" value="25" aria-label="Громкость музыки"></div><button class="preview-btn music-mute-button" id="musicMuteBtn" type="button" aria-label="Выключить звук" aria-pressed="false">♫</button></div>
       </div>
     </section>
 
@@ -104,10 +104,10 @@
   </main>
 
   <section class="reader-screen" id="readerScreen" aria-label="Экран чтения" data-mode="word">
-    <header class="reader-header"><button class="btn-icon reader-exit" id="exitBtn" type="button" aria-label="Выйти из чтения"><svg class="icon"><use href="#icon-chevron"/></svg></button><div class="reader-document"><strong id="readerDocumentTitle">Ваш документ</strong><span><span id="readerStatus">Чтение</span><span aria-hidden="true"> · </span><span id="readerMusicModeName">Jazz Flow</span></span></div><button class="btn-icon reader-music-button" id="readerMusicBtn" type="button" aria-label="Настроить музыку" aria-expanded="false" aria-controls="readerMusicPanel">♫</button><span class="reader-progress" id="readerProgress">0 / 0</span></header>
+    <header class="reader-header"><button class="btn-icon reader-exit" id="exitBtn" type="button" aria-label="Выйти из чтения"><svg class="icon"><use href="#icon-chevron"/></svg></button><div class="reader-document"><strong id="readerDocumentTitle">Ваш документ</strong><span><span id="readerStatus">Чтение</span><span aria-hidden="true"> · </span><span id="readerMusicModeName">Adrenaline</span></span></div><button class="btn-icon reader-music-button" id="readerMusicBtn" type="button" aria-label="Настроить музыку" aria-expanded="false" aria-controls="readerMusicPanel">♫</button><span class="reader-progress" id="readerProgress">0 / 0</span></header>
     <div class="reader-progress-track" aria-hidden="true"><div id="readerProgressFill"></div></div>
     <aside class="reader-music-notice" id="readerMusicNotice" role="status" hidden><span id="readerMusicMessage"></span><button class="preview-btn" id="readerMusicRetryBtn" type="button">Включить музыку</button></aside>
-    <aside class="reader-music-panel card" id="readerMusicPanel" aria-label="Музыка во время чтения" hidden><header><h2>Ваш музыкальный поток</h2><button class="btn-icon" id="readerMusicCloseBtn" type="button" aria-label="Закрыть настройки музыки">×</button></header><label class="setting-label" for="readerMusicModeInput">Режим<select class="select-input" id="readerMusicModeInput"><option value="focus">◌ Focus · 150–299</option><option value="jazz" selected>♫ Jazz Flow · 300–499</option><option value="adrenaline">♥ Adrenaline · 300–499</option><option value="hyperflow">≋ Hyperflow · 500–799</option><option value="extreme">ϟ Extreme · 800+</option><option value="silence">○ Silence · без музыки</option></select></label><div class="reader-music-volume"><div class="music-volume-control"><label for="readerMusicVolumeInput"><span>Громкость</span><span id="readerMusicVolumeValue">25%</span></label><input id="readerMusicVolumeInput" type="range" min="0" max="100" step="1" value="25" aria-label="Громкость музыки"></div><button class="preview-btn music-mute-button" id="readerMusicMuteBtn" type="button" aria-label="Выключить звук" aria-pressed="false">♫</button></div></aside>
+    <aside class="reader-music-panel card" id="readerMusicPanel" aria-label="Музыка во время чтения" hidden><header><h2>Ваш музыкальный поток</h2><button class="btn-icon" id="readerMusicCloseBtn" type="button" aria-label="Закрыть настройки музыки">×</button></header><label class="setting-label" for="readerMusicModeInput">Режим<select class="select-input" id="readerMusicModeInput"><option value="focus">◌ Focus · 150–299</option><option value="jazz">♫ Jazz Flow · 300–499</option><option value="adrenaline" selected>♥ Adrenaline · 300–499</option><option value="hyperflow">≋ Hyperflow · 500–799</option><option value="extreme">ϟ Extreme · 800+</option><option value="silence">○ Silence · без музыки</option></select></label><div class="reader-music-volume"><div class="music-volume-control"><label for="readerMusicVolumeInput"><span>Громкость</span><span id="readerMusicVolumeValue">25%</span></label><input id="readerMusicVolumeInput" type="range" min="0" max="100" step="1" value="25" aria-label="Громкость музыки"></div><button class="preview-btn music-mute-button" id="readerMusicMuteBtn" type="button" aria-label="Выключить звук" aria-pressed="false">♫</button></div></aside>
     <div class="reader-stage">
       <div class="reader-focus-guides" aria-hidden="true"></div>
       <div class="word-display" id="wordDisplay" aria-live="off"><span class="word-before"></span><span class="word-focus"></span><span class="word-after"></span></div>

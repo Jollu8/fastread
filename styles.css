@@ -150,7 +150,7 @@ input[type="range"] { width: 100%; height: 44px; margin: 5px 0 0; accent-color: 
 .music-mode-range { color: var(--muted); font-size: 8px; white-space: nowrap; font-variant-numeric: tabular-nums; }
 .music-mode.is-recommended .music-mode-range, .music-mode[data-recommended="true"] .music-mode-range { color: var(--accent); }
 .music-mode-description { min-height: 12px; color: var(--muted); font-size: 10px; line-height: 1.35; }
-.music-volume-tools { display: grid; grid-template-columns: minmax(0, 1fr) 44px 44px; align-items: center; gap: 9px; flex-shrink: 0; padding-top: 3px; }
+.music-volume-tools { display: grid; grid-template-columns: minmax(0, 1fr) 44px; align-items: center; gap: 9px; flex-shrink: 0; padding-top: 3px; }
 .music-volume-control { min-width: 0; }
 .music-volume-control > label { display: flex; align-items: center; justify-content: space-between; gap: 8px; color: var(--muted); font-size: 10px; font-variant-numeric: tabular-nums; }
 .music-volume-control > label strong { color: var(--fg); font-size: 11px; font-weight: 550; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -167,6 +167,7 @@ input[type="range"] { width: 100%; height: 44px; margin: 5px 0 0; accent-color: 
 .settings-content > .privacy-note { margin-top: 4px; }
 .reader-screen { position: fixed; inset: 0; display: none; flex-direction: column; gap: 0; padding: max(16px, env(safe-area-inset-top)) 24px max(12px, env(safe-area-inset-bottom)); background: var(--bg); touch-action: manipulation; user-select: none; -webkit-user-select: none; }
 .reader-screen.active { display: flex; }
+.reader-screen.is-reading-clean .reader-header, .reader-screen.is-reading-clean .reader-progress-track, .reader-screen.is-reading-clean .reader-bottom { display: none; }
 .reader-header { display: flex; width: min(100%, 920px); min-height: 48px; align-items: center; align-self: center; gap: 12px; }
 .btn-icon { display: grid; min-width: 44px; min-height: 44px; padding: 8px; place-items: center; border-radius: 50%; background: transparent; color: var(--fg); font-size: 20px; }
 .reader-exit { background: var(--card); border: 1px solid var(--border); }
@@ -367,6 +368,7 @@ input[type="range"] { width: 100%; height: 44px; margin: 5px 0 0; accent-color: 
   .code-card { gap: 7px; }
   .code-content { font-size: 10px; line-height: 1.4; }
 }
+.reader-screen.is-reading-clean .reader-stage { align-self: center; width: min(100%, 920px); }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
 }

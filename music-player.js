@@ -9,7 +9,7 @@
   const now = () => root.performance?.now?.() ?? Date.now();
 
   class FastReadMusic {
-    constructor({ element, onChange = () => {}, onError = () => {}, onSuccess = () => {}, volume = .25, fadeInMs = 350, fadeOutMs = 200 }) {
+    constructor({ element, onChange = () => {}, onError = () => {}, onSuccess = () => {}, volume = .25, playbackRate = 1, fadeInMs = 350, fadeOutMs = 200 }) {
       this.element = element;
       this.onChange = onChange;
       this.onError = onError;
@@ -20,6 +20,7 @@
       this.pending = null;
       this.error = null;
       this.volume = bounded(volume, .25, 0, 1);
+      this.playbackRate = bounded(playbackRate, 1, .8, 1.75);
       this.muted = false;
       this.fadeInMs = bounded(fadeInMs, 350, 0, 2000);
       this.fadeOutMs = bounded(fadeOutMs, 200, 0, 2000);
@@ -34,6 +35,10 @@
       this._gain = null;
       this._mediaSource = null;
       this._resetRequested = false;
+      this.element.playbackRate = this.playbackRate;
+      for (const property of ["preservesPitch", "webkitPreservesPitch", "mozPreservesPitch"]) {
+        if (property in this.element) this.element[property] = false;
+      }
       this._listeners = {
         playing: () => {
           if (this._updating || this._destroyed) return;
@@ -180,7 +185,7 @@
       this._updating = true;
       try {
         this.element.pause();
-        this.element.preload = "metadata";
+        this.element.preload = source ? "auto" : "none";
         this.element.loop = true;
         if (source) this.element.src = source;
         else this.element.removeAttribute("src");
@@ -200,9 +205,20 @@
       this.source = source;
       this.error = null;
       this._setLevel(0);
-      this._installSource(source);
+      // Merely restoring a mode must not start a media request. In particular,
+      // preload="none" alone is a browser hint, so leave src unset as well.
+      if (this._installedSource) this._installSource("");
+      this.element.preload = "none";
       this.state = source ? "paused" : "idle";
       this._notify(this.onChange, this);
+      return true;
+    }
+
+    preload() {
+      if (this._destroyed || !this.source || this._wanted || this.pending) return false;
+      // An explicit mode choice may buffer its track without starting playback.
+      // Repeated choices and resume preserve the current buffered position.
+      if (this._installedSource !== this.source) this._installSource(this.source);
       return true;
     }
 
@@ -310,6 +326,11 @@
       this._notify(this.onChange, this);
     }
 
+    setPlaybackRate(value) {
+      this.playbackRate = bounded(value, this.playbackRate, .8, 1.75);
+      this.element.playbackRate = this.playbackRate;
+    }
+
     _describe(error) {
       const name = error?.name || "MediaError";
       const code = Number(this.element.error?.code || error?.code) || 0;
@@ -381,6 +402,7 @@
     destroy() {
       if (this._destroyed) return;
       void this.pause({ immediate: true, reset: true });
+      if (this._installedSource) this._installSource("");
       this._destroyed = true;
       for (const [name, listener] of Object.entries(this._listeners)) this.element.removeEventListener(name, listener);
       this._mediaSource?.disconnect();

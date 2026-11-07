@@ -2,7 +2,7 @@
 "use strict";
 
 const CACHE_PREFIX = "fastread-shell-";
-const CACHE_NAME = `${CACHE_PREFIX}v4`;
+const CACHE_NAME = `${CACHE_PREFIX}v6`;
 const SHELL_FILES = [
   "./",
   "index.html",
