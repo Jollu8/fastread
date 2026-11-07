@@ -1003,6 +1003,11 @@
 
   function exitReading() {
     pause();
+    if (document.fullscreenElement === readerScreen) {
+      document.exitFullscreen().catch((error) => {
+        console.info("Не удалось выйти из полноэкранного режима.", error);
+      });
+    }
     readerScreen.classList.remove("active");
     $("readerMusicPanel").hidden = true;
     $("readerMusicBtn").setAttribute("aria-expanded", "false");
@@ -1010,6 +1015,29 @@
     updateSelectedDocument();
     renderSavedDocuments();
     if (activeTab === "home") $("startBtn").focus({ preventScroll: true });
+  }
+
+  async function toggleReaderFullscreen() {
+    try {
+      if (document.fullscreenElement === readerScreen) {
+        await document.exitFullscreen();
+      } else if (typeof readerScreen.requestFullscreen === "function") {
+        await readerScreen.requestFullscreen({ navigationUI: "hide" });
+      } else {
+        $("readerHint").textContent = "Этот браузер не поддерживает полный экран. На iPhone добавьте FastRead на экран «Домой».";
+      }
+    } catch (error) {
+      $("readerHint").textContent = "Не удалось включить полный экран. На iPhone добавьте FastRead на экран «Домой».";
+      console.info("Полноэкранный режим недоступен.", error);
+    }
+  }
+
+  function updateReaderFullscreenControl() {
+    const active = document.fullscreenElement === readerScreen;
+    const button = $("readerFullscreenBtn");
+    button.setAttribute("aria-pressed", String(active));
+    button.setAttribute("aria-label", active ? "Выйти из полноэкранного режима" : "На весь экран");
+    button.title = active ? "Выйти из полноэкранного режима" : "На весь экран";
   }
 
   function jumpWords(delta) {
@@ -1115,6 +1143,8 @@
   $("rewindBtn").addEventListener("click", () => jumpWords(-10));
   $("forwardBtn").addEventListener("click", () => jumpWords(10));
   $("exitBtn").addEventListener("click", exitReading);
+  $("readerFullscreenBtn").addEventListener("click", toggleReaderFullscreen);
+  document.addEventListener("fullscreenchange", updateReaderFullscreenControl);
   readerScreen.addEventListener("click", handleReaderTap);
   readerScreen.addEventListener("touchstart", (event) => {
     if (event.target.closest("button, .code-card, .reader-music-notice, .reader-music-panel")) return;
@@ -1140,6 +1170,7 @@
     else if (event.key === "ArrowRight") { event.preventDefault(); jumpWords(10); }
     else if (event.key === "Escape") {
       if (!$("readerMusicPanel").hidden) showReaderMusicPanel(false);
+      else if (document.fullscreenElement === readerScreen) return;
       else exitReading();
     }
   });
