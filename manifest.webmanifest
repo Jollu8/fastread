@@ -1,0 +1,20 @@
+{
+  "id": "./",
+  "name": "FastRead — в своём ритме",
+  "short_name": "FastRead",
+  "description": "Чтение TXT, Markdown и PDF в своём ритме. Документы остаются на вашем устройстве.",
+  "lang": "ru",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f5f5f7",
+  "theme_color": "#f5f5f7",
+  "icons": [
+    {
+      "src": "assets/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
